@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PipelineIQ — CI/CD Visualizer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="/static/css/main.css" />
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     NAVIGATION
+═══════════════════════════════════════════════════════════════════ -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo" data-page="dashboard">
+      <span class="logo-icon">⚡</span>
+      <span class="logo-text">Pipeline<span class="logo-iq">IQ</span></span>
+    </a>
+    <div class="nav-links">
+      <a href="#" class="nav-link active" data-page="dashboard">Dashboard</a>
+      <a href="#" class="nav-link" data-page="pipelines-list">Pipelines</a>
+      <a href="#" class="nav-link" data-page="metrics">Metrics</a>
+      <a href="#" class="nav-link" data-page="create-pipeline">
+        <span class="btn-create">+ New Pipeline</span>
+      </a>
+    </div>
+    <button class="nav-mobile-toggle" id="mobileToggle">☰</button>
+  </div>
+</nav>
+
+<!-- Mobile menu -->
+<div class="mobile-menu" id="mobileMenu">
+  <a href="#" class="nav-link" data-page="dashboard">Dashboard</a>
+  <a href="#" class="nav-link" data-page="pipelines-list">Pipelines</a>
+  <a href="#" class="nav-link" data-page="metrics">Metrics</a>
+  <a href="#" class="nav-link" data-page="create-pipeline">+ New Pipeline</a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE CONTAINER
+═══════════════════════════════════════════════════════════════════ -->
+<main class="main-content" id="mainContent">
+
+  <!-- ────────────────────────────────────────────
+       PAGE: DASHBOARD
+  ──────────────────────────────────────────── -->
+  <div class="page" id="page-dashboard">
+    <div class="page-header">
+      <h1 class="page-title">Dashboard</h1>
+      <p class="page-subtitle">Real-time overview of your CI/CD pipelines</p>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total Pipelines</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-success">0%</div>
+          <div class="stat-label">Success Rate</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⏱</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-avg-time">0s</div>
+          <div class="stat-label">Avg Deploy Time</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon pulse-dot">🔄</div>
+        <div class="stat-info">
+          <div class="stat-value" id="stat-active">0</div>
+          <div class="stat-label">Active Runs</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pipeline Cards Grid -->
+    <div class="section-header">
+      <h2 class="section-title">Active Pipelines</h2>
+      <button class="btn-secondary" onclick="App.loadDashboard()">↻ Refresh</button>
+    </div>
+    <div class="pipeline-grid" id="pipelineGrid">
+      <div class="loading-spinner">Loading pipelines...</div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────
+       PAGE: PIPELINE DETAIL
+  ──────────────────────────────────────────── -->
+  <div class="page hidden" id="page-pipeline-detail">
+    <div class="page-header">
+      <button class="btn-back" onclick="App.navigate('dashboard')">← Back</button>
+      <div>
+        <h1 class="page-title" id="detail-title">Pipeline Detail</h1>
+        <p class="page-subtitle" id="detail-subtitle">Run details and stage breakdown</p>
+      </div>
+      <button class="btn-primary" id="triggerBtn">▶ Trigger Run</button>
+    </div>
+
+    <!-- Commit Info -->
+    <div class="commit-info-bar" id="commitInfoBar"></div>
+
+    <!-- Stage Visualizer -->
+    <div class="card stages-card">
+      <h2 class="card-title">Pipeline Stages</h2>
+      <div class="stages-visualizer" id="stagesVisualizer"></div>
+    </div>
+
+    <!-- Log Terminal -->
+    <div class="card terminal-card">
+      <div class="terminal-header">
+        <div class="terminal-dots">
+          <span class="dot dot-red"></span>
+          <span class="dot dot-yellow"></span>
+          <span class="dot dot-green"></span>
+        </div>
+        <span class="terminal-title" id="terminalTitle">Select a stage to view logs</span>
+      </div>
+      <div class="terminal-body" id="terminalBody">
+        <div class="terminal-placeholder">▶ Click on a stage above to view its logs</div>
+      </div>
+    </div>
+
+    <!-- Recent Runs -->
+    <div class="card">
+      <h2 class="card-title">Recent Runs</h2>
+      <div id="recentRunsList"></div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────
+       PAGE: PIPELINES LIST
+  ──────────────────────────────────────────── -->
+  <div class="page hidden" id="page-pipelines-list">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">All Pipeline Runs</h1>
+        <p class="page-subtitle">Complete history of all pipeline executions</p>
+      </div>
+    </div>
+
+    <!-- Filters Bar -->
+    <div class="filters-bar">
+      <input type="text" class="filter-input" id="searchInput" placeholder="🔍  Search pipelines, authors, commits..." />
+      <select class="filter-select" id="statusFilter">
+        <option value="">All Status</option>
+        <option value="success">Success</option>
+        <option value="failed">Failed</option>
+        <option value="running">Running</option>
+        <option value="pending">Pending</option>
+      </select>
+      <select class="filter-select" id="pipelineFilter">
+        <option value="">All Pipelines</option>
+      </select>
+      <button class="btn-secondary" onclick="App.loadRunsList()">Apply</button>
+    </div>
+
+    <!-- Runs Table -->
+    <div class="card table-card">
+      <table class="runs-table" id="runsTable">
+        <thead>
+          <tr>
+            <th>Pipeline</th>
+            <th>Run #</th>
+            <th>Status</th>
+            <th>Author</th>
+            <th>Commit</th>
+            <th>Duration</th>
+            <th>Started</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="runsTableBody">
+          <tr><td colspan="8" class="loading-cell">Loading runs...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <!-- ────────────────────────────────────────────
+       PAGE: CREATE PIPELINE
+  ──────────────────────────────────────────── -->
+  <div class="page hidden" id="page-create-pipeline">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Create Pipeline</h1>
+        <p class="page-subtitle">Configure a new CI/CD pipeline</p>
+      </div>
+    </div>
+
+    <div class="create-form-wrapper">
+      <div class="card form-card">
+        <div class="form-section">
+          <h3 class="form-section-title">Project Info</h3>
+          <div class="form-group">
+            <label class="form-label" for="f-name">Project Name <span class="required">*</span></label>
+            <input type="text" class="form-input" id="f-name" placeholder="e.g. payment-service" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="f-repo">GitHub Repository URL <span class="required">*</span></label>
+            <input type="url" class="form-input" id="f-repo" placeholder="https://github.com/org/repo" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="f-branch">Branch</label>
+            <input type="text" class="form-input" id="f-branch" value="main" placeholder="main" />
+          </div>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <div class="form-section">
+          <h3 class="form-section-title">Configuration</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label" for="f-trigger">Trigger Type</label>
+              <select class="form-input" id="f-trigger">
+                <option value="push">Push (on git push)</option>
+                <option value="manual">Manual (on demand)</option>
+                <option value="scheduled">Scheduled (cron)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="f-env">Environment</label>
+              <select class="form-input" id="f-env">
+                <option value="dev">Development</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-secondary" onclick="App.navigate('dashboard')">Cancel</button>
+          <button class="btn-primary" id="createPipelineBtn" onclick="App.createPipeline()">
+            Create Pipeline →
+          </button>
+        </div>
+
+        <div class="form-success hidden" id="formSuccess">
+          <span class="success-icon">✅</span>
+          <span id="formSuccessMsg">Pipeline created successfully!</span>
+        </div>
+        <div class="form-error hidden" id="formError">
+          <span>❌</span>
+          <span id="formErrorMsg">Something went wrong.</span>
+        </div>
+      </div>
+
+      <!-- Pipeline Stages Preview -->
+      <div class="card stages-preview-card">
+        <h3 class="card-title">Pipeline Stages</h3>
+        <p class="stages-preview-subtitle">Your pipeline will run these stages in order</p>
+        <div class="stages-preview">
+          <div class="preview-stage">
+            <div class="preview-stage-icon">📥</div>
+            <div class="preview-stage-name">Source</div>
+            <div class="preview-stage-desc">GitHub checkout</div>
+          </div>
+          <div class="preview-arrow">→</div>
+          <div class="preview-stage">
+            <div class="preview-stage-icon">🐳</div>
+            <div class="preview-stage-name">Build</div>
+            <div class="preview-stage-desc">Docker image</div>
+          </div>
+          <div class="preview-arrow">→</div>
+          <div class="preview-stage">
+            <div class="preview-stage-icon">🧪</div>
+            <div class="preview-stage-name">Test</div>
+            <div class="preview-stage-desc">Jest / pytest</div>
+          </div>
+          <div class="preview-arrow">→</div>
+          <div class="preview-stage">
+            <div class="preview-stage-icon">📤</div>
+            <div class="preview-stage-name">Push to ECR</div>
+            <div class="preview-stage-desc">AWS ECR registry</div>
+          </div>
+          <div class="preview-arrow">→</div>
+          <div class="preview-stage">
+            <div class="preview-stage-icon">🚀</div>
+            <div class="preview-stage-name">Deploy to EC2</div>
+            <div class="preview-stage-desc">Zero-downtime</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ────────────────────────────────────────────
+       PAGE: METRICS
+  ──────────────────────────────────────────── -->
+  <div class="page hidden" id="page-metrics">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Metrics</h1>
+        <p class="page-subtitle">30-day analytics and deployment insights</p>
+      </div>
+    </div>
+
+    <div class="metrics-grid">
+      <div class="card chart-card chart-wide">
+        <h3 class="card-title">Success vs. Failure Over Time</h3>
+        <canvas id="chart-success-failure"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3 class="card-title">Avg Build Duration by Project</h3>
+        <canvas id="chart-duration"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3 class="card-title">Deployment Frequency (last 30 days)</h3>
+        <canvas id="chart-deploy-freq"></canvas>
+      </div>
+      <div class="card chart-card">
+        <h3 class="card-title">Most Common Failure Stage</h3>
+        <canvas id="chart-failure-stage"></canvas>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast Notification -->
+<div class="toast hidden" id="toast"></div>
+
+<!-- App JS -->
+<script src="/static/js/app.js"></script>
+
+</body>
+</html>
