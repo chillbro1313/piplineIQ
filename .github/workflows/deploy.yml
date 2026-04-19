@@ -1,5 +1,24 @@
+name: Deploy to EC2
 
-script: |
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
             git config --global --add safe.directory /home/ubuntu/piplineIQ
             cd /home/ubuntu/piplineIQ
             git pull origin main
